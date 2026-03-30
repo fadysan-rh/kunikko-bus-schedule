@@ -35,4 +35,18 @@ export interface BusOption {
   arrivalTime: number;
   travelMinutes: number;
   intermediateStops: { name: string; time: number }[];
+  originStopName: string;
+  destinationStopName: string;
+}
+
+export interface StationGroup {
+  id: string;
+  name: string;
+  stopIds: string[];
+}
+
+export interface SelectableItem {
+  id: string;
+  name: string;
+  type: 'stop' | 'group';
 }

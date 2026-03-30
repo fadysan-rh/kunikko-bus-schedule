@@ -6,9 +6,11 @@ interface Props {
   option: BusOption;
   now: number;
   index: number;
+  isGroupOrigin?: boolean;
+  isGroupDestination?: boolean;
 }
 
-export function BusOptionCard({ option, now, index }: Props) {
+export function BusOptionCard({ option, now, index, isGroupOrigin, isGroupDestination }: Props) {
   const [expanded, setExpanded] = useState(false);
   const diff = option.departureTime - now;
   const isImminent = diff <= 5 && diff >= 0;
@@ -32,7 +34,7 @@ export function BusOptionCard({ option, now, index }: Props) {
               {formatTime(option.arrivalTime)}
             </span>
           </div>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${
               option.directionId === 'A'
                 ? 'bg-blue-50 text-blue-600'
@@ -44,6 +46,20 @@ export function BusOptionCard({ option, now, index }: Props) {
               {option.travelMinutes}分
             </span>
           </div>
+          {(isGroupOrigin || isGroupDestination) && (
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {isGroupOrigin && (
+                <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[11px] font-medium">
+                  乗車: {option.originStopName}
+                </span>
+              )}
+              {isGroupDestination && (
+                <span className="inline-block px-1.5 py-0.5 rounded bg-red-50 text-red-700 text-[11px] font-medium">
+                  降車: {option.destinationStopName}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div
           className={`shrink-0 text-center px-3 py-2 rounded-xl font-bold ${

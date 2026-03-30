@@ -1,22 +1,55 @@
-import type { TimetableData, BusOption, DirectionId } from '../types';
+import type { TimetableData, BusOption, DirectionId, SelectableItem } from '../types';
+import { stationGroups } from '../data/stationGroups';
+
+/** Resolve a selectable ID to one or more stop IDs */
+export function resolveStopIds(id: string): string[] {
+  const group = stationGroups.find(g => g.id === id);
+  return group ? group.stopIds : [id];
+}
+
+/** Build the list of selectable items: groups first, then individual stops */
+export function getSelectableItems(data: TimetableData): SelectableItem[] {
+  const groups: SelectableItem[] = stationGroups.map(g => ({
+    id: g.id,
+    name: g.name,
+    type: 'group',
+  }));
+
+  const seen = new Set<string>();
+  const stops: SelectableItem[] = [];
+
+  for (const direction of data.directions) {
+    for (const stopId of direction.stopIds) {
+      if (!seen.has(stopId)) {
+        seen.add(stopId);
+        const stop = data.stops.find(s => s.id === stopId);
+        if (stop) stops.push({ id: stop.id, name: stop.name, type: 'stop' });
+      }
+    }
+  }
+
+  return [...groups, ...stops];
+}
 
 export function findNextBuses(
-  originId: string,
-  destinationId: string,
+  originIds: string[],
+  destinationIds: string[],
   now: number,
   data: TimetableData,
   limit: number = 3
 ): BusOption[] {
   const results: BusOption[] = [];
   const stopMap = new Map(data.stops.map(s => [s.id, s.name]));
+  const originSet = new Set(originIds);
+  const destSet = new Set(destinationIds);
 
   for (const direction of data.directions) {
     const originIndices: number[] = [];
     const destIndices: number[] = [];
 
     direction.stopIds.forEach((id, i) => {
-      if (id === originId) originIndices.push(i);
-      if (id === destinationId) destIndices.push(i);
+      if (originSet.has(id)) originIndices.push(i);
+      if (destSet.has(id)) destIndices.push(i);
     });
 
     for (const oi of originIndices) {
@@ -48,13 +81,16 @@ export function findNextBuses(
             arrivalTime: arrTime,
             travelMinutes: arrTime - depTime,
             intermediateStops,
+            originStopName: stopMap.get(direction.stopIds[oi]) || direction.stopIds[oi],
+            destinationStopName: stopMap.get(direction.stopIds[di]) || direction.stopIds[di],
           });
         }
       }
     }
   }
 
-  results.sort((a, b) => a.departureTime - b.departureTime);
+  // Sort by arrival time so the fastest option comes first
+  results.sort((a, b) => a.arrivalTime - b.arrivalTime);
   return results.slice(0, limit);
 }
 

@@ -5,9 +5,11 @@ interface Props {
   results: BusOption[];
   now: number;
   hasSelection: boolean;
+  isGroupOrigin?: boolean;
+  isGroupDestination?: boolean;
 }
 
-export function ResultsPanel({ results, now, hasSelection }: Props) {
+export function ResultsPanel({ results, now, hasSelection, isGroupOrigin, isGroupDestination }: Props) {
   if (!hasSelection) {
     return (
       <div className="text-center py-12 text-gray-300">
@@ -38,7 +40,7 @@ export function ResultsPanel({ results, now, hasSelection }: Props) {
         次のバス ({results.length}件)
       </h2>
       {results.map((opt, i) => (
-        <BusOptionCard key={`${opt.directionId}-${opt.departureTime}`} option={opt} now={now} index={i} />
+        <BusOptionCard key={`${opt.directionId}-${opt.departureTime}`} option={opt} now={now} index={i} isGroupOrigin={isGroupOrigin} isGroupDestination={isGroupDestination} />
       ))}
     </div>
   );

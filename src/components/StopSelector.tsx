@@ -1,5 +1,7 @@
+import type { SelectableItem } from '../types';
+
 interface Props {
-  stops: { id: string; name: string }[];
+  items: SelectableItem[];
   originId: string | null;
   destinationId: string | null;
   onOriginChange: (id: string | null) => void;
@@ -7,7 +9,7 @@ interface Props {
 }
 
 export function StopSelector({
-  stops,
+  items,
   originId,
   destinationId,
   onOriginChange,
@@ -19,6 +21,31 @@ export function StopSelector({
     onOriginChange(d);
     onDestinationChange(o);
   };
+
+  const groups = items.filter(i => i.type === 'group');
+  const stops = items.filter(i => i.type === 'stop');
+
+  const renderOptions = (prefix: string) => (
+    <>
+      <option value="">停留所を選択</option>
+      {groups.length > 0 && (
+        <optgroup label="駅・エリア">
+          {groups.map(g => (
+            <option key={`${prefix}-${g.id}`} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      <optgroup label="停留所">
+        {stops.map(s => (
+          <option key={`${prefix}-${s.id}`} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </optgroup>
+    </>
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -41,12 +68,7 @@ export function StopSelector({
               value={originId ?? ''}
               onChange={e => onOriginChange(e.target.value || null)}
             >
-              <option value="">停留所を選択</option>
-              {stops.map(s => (
-                <option key={`o-${s.id}`} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
+              {renderOptions('o')}
             </select>
           </div>
 
@@ -59,12 +81,7 @@ export function StopSelector({
               value={destinationId ?? ''}
               onChange={e => onDestinationChange(e.target.value || null)}
             >
-              <option value="">停留所を選択</option>
-              {stops.map(s => (
-                <option key={`d-${s.id}`} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
+              {renderOptions('d')}
             </select>
           </div>
         </div>
