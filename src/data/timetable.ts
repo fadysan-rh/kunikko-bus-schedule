@@ -70,33 +70,37 @@ const DIR_B_OFFSETS = [
   40, // 国立駅北口
 ];
 
-// Direction A departures from 国立駅北口
-const DIR_A_DEPARTURES = [
+// Direction A full-route departures from 国立駅北口 (→ 市役所)
+const DIR_A_FULL_DEPARTURES = [
   // Morning (15-min intervals)
   t(6,53), t(7,8), t(7,23), t(7,38), t(7,53),
   t(8,8), t(8,23), t(8,38), t(9,0), t(9,8),
   // Midday (47-min intervals)
   t(9,47), t(10,34), t(11,21), t(12,8), t(12,55),
   t(13,42), t(14,29), t(15,16), t(16,3), t(16,50),
-  // Evening
+];
+
+// Direction A evening partial trips to 北第一公園西 (index 6 in A stops)
+const DIR_A_PARTIAL_DEPARTURES = [
   t(17,40), t(18,10), t(18,25), t(18,55), t(19,10),
   t(19,25), t(19,40), t(20,0), t(20,30),
 ];
+const DIR_A_PARTIAL_END_INDEX = 6; // 北第一公園西 in Direction A
 
 // Direction B full-route departures from 国立市役所
 const DIR_B_FULL_DEPARTURES = [
-  // Midday (47-min intervals)
   t(9,46), t(10,33), t(11,20), t(12,7), t(12,54),
   t(13,41), t(14,28), t(15,15), t(16,2), t(16,50), t(17,39),
-  // Evening (derived from A arrivals + 6 min turnaround)
-  t(18,26), t(18,56), t(19,11), t(19,41), t(19,56),
-  t(20,11), t(20,26), t(20,46),
 ];
 
-// Direction B early morning partial trips from 北第一公園西 (index 21 in B stops)
+// Direction B partial trips from 北第一公園西 (index 21 in B stops)
 const DIR_B_PARTIAL_DEPARTURES = [
+  // Morning
   t(6,45), t(7,0), t(7,15), t(7,30), t(7,45),
   t(8,0), t(8,15), t(8,30), t(8,45), t(9,0),
+  // Evening
+  t(18,2), t(18,12), t(18,32), t(18,47), t(19,2),
+  t(19,17), t(19,32), t(19,52), t(20,22),
 ];
 const DIR_B_PARTIAL_START_INDEX = 21; // 北第一公園西 in Direction B
 
@@ -194,10 +198,19 @@ export const timetable: TimetableData = {
   ],
 
   trips: [
-    // Direction A trips (all full route)
-    ...DIR_A_DEPARTURES.map(dep => ({
+    // Direction A full-route trips
+    ...DIR_A_FULL_DEPARTURES.map(dep => ({
       directionId: 'A' as const,
       times: DIR_A_OFFSETS.map(offset => dep + offset),
+    })),
+
+    // Direction A evening partial trips (terminate at 北第一公園西)
+    ...DIR_A_PARTIAL_DEPARTURES.map(dep => ({
+      directionId: 'A' as const,
+      times: DIR_A_OFFSETS.map((offset, i) => {
+        if (i > DIR_A_PARTIAL_END_INDEX) return null;
+        return dep + offset;
+      }),
     })),
 
     // Direction B full-route trips
@@ -206,7 +219,7 @@ export const timetable: TimetableData = {
       times: DIR_B_OFFSETS.map(offset => dep + offset),
     })),
 
-    // Direction B early morning partial trips (start from 北第一公園西)
+    // Direction B partial trips (morning + evening, from 北第一公園西)
     ...DIR_B_PARTIAL_DEPARTURES.map(dep => ({
       directionId: 'B' as const,
       times: DIR_B_OFFSETS.map((offset, i) => {
