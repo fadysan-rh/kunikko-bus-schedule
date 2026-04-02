@@ -4,5 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: '/kunikko-bus-schedule/',
+  build: { outDir: 'docs' },
   plugins: [react(), tailwindcss()],
 })
