@@ -1,4 +1,8 @@
+import { useMemo } from 'react';
 import type { SelectableItem } from '../types';
+import { timetable } from '../data/timetable';
+import { stationGroups } from '../data/stationGroups';
+import { getReachableStopIds, getOriginStopIds } from '../utils/routeFinder';
 
 interface Props {
   items: SelectableItem[];
@@ -6,6 +10,17 @@ interface Props {
   destinationId: string | null;
   onOriginChange: (id: string | null) => void;
   onDestinationChange: (id: string | null) => void;
+}
+
+function filterItems(allItems: SelectableItem[], allowedIds: Set<string> | null): SelectableItem[] {
+  if (!allowedIds) return allItems;
+  return allItems.filter(item => {
+    if (item.type === 'group') {
+      const group = stationGroups.find(g => g.id === item.id);
+      return group ? group.stopIds.some(id => allowedIds.has(id)) : false;
+    }
+    return allowedIds.has(item.id);
+  });
 }
 
 export function StopSelector({
@@ -22,30 +37,47 @@ export function StopSelector({
     onDestinationChange(o);
   };
 
-  const groups = items.filter(i => i.type === 'group');
-  const stops = items.filter(i => i.type === 'stop');
+  const reachableFromOrigin = useMemo(() => {
+    if (!originId) return null;
+    return getReachableStopIds(originId, timetable);
+  }, [originId]);
 
-  const renderOptions = (prefix: string) => (
-    <>
-      <option value="">停留所を選択</option>
-      {groups.length > 0 && (
-        <optgroup label="駅・エリア">
-          {groups.map(g => (
-            <option key={`${prefix}-${g.id}`} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </optgroup>
-      )}
-      <optgroup label="停留所">
-        {stops.map(s => (
-          <option key={`${prefix}-${s.id}`} value={s.id}>
-            {s.name}
-          </option>
-        ))}
-      </optgroup>
-    </>
-  );
+  const canReachDest = useMemo(() => {
+    if (!destinationId) return null;
+    return getOriginStopIds(destinationId, timetable);
+  }, [destinationId]);
+
+  const originItems = filterItems(items, canReachDest);
+  const destItems = filterItems(items, reachableFromOrigin);
+
+  const renderOptions = (prefix: string, filteredItems: SelectableItem[]) => {
+    const groups = filteredItems.filter(i => i.type === 'group');
+    const stops = filteredItems.filter(i => i.type === 'stop');
+
+    return (
+      <>
+        <option value="">停留所を選択</option>
+        {groups.length > 0 && (
+          <optgroup label="駅・エリア">
+            {groups.map(g => (
+              <option key={`${prefix}-${g.id}`} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {stops.length > 0 && (
+          <optgroup label="停留所">
+            {stops.map(s => (
+              <option key={`${prefix}-${s.id}`} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -68,7 +100,7 @@ export function StopSelector({
               value={originId ?? ''}
               onChange={e => onOriginChange(e.target.value || null)}
             >
-              {renderOptions('o')}
+              {renderOptions('o', originItems)}
             </select>
           </div>
 
@@ -81,7 +113,7 @@ export function StopSelector({
               value={destinationId ?? ''}
               onChange={e => onDestinationChange(e.target.value || null)}
             >
-              {renderOptions('d')}
+              {renderOptions('d', destItems)}
             </select>
           </div>
         </div>

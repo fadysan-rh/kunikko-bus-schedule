@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useCurrentTime } from './hooks/useCurrentTime';
 import { useBusSearch } from './hooks/useBusSearch';
-import { getSelectableItems } from './utils/routeFinder';
+import { getSelectableItems, getReachableStopIds, getOriginStopIds, resolveStopIds } from './utils/routeFinder';
 import { timetable } from './data/timetable';
 import { Header } from './components/Header';
 import { StopSelector } from './components/StopSelector';
@@ -16,6 +16,30 @@ function App() {
   const [originId, setOriginId] = useState<string | null>(null);
   const [destinationId, setDestinationId] = useState<string | null>(null);
 
+  const handleOriginChange = useCallback((newOriginId: string | null) => {
+    setOriginId(newOriginId);
+    // Clear destination if it's no longer reachable from the new origin
+    if (newOriginId && destinationId) {
+      const reachable = getReachableStopIds(newOriginId, timetable);
+      const destStopIds = resolveStopIds(destinationId);
+      if (!destStopIds.some(id => reachable.has(id))) {
+        setDestinationId(null);
+      }
+    }
+  }, [destinationId]);
+
+  const handleDestinationChange = useCallback((newDestId: string | null) => {
+    setDestinationId(newDestId);
+    // Clear origin if it can no longer reach the new destination
+    if (newDestId && originId) {
+      const origins = getOriginStopIds(newDestId, timetable);
+      const originStopIds = resolveStopIds(originId);
+      if (!originStopIds.some(id => origins.has(id))) {
+        setOriginId(null);
+      }
+    }
+  }, [originId]);
+
   const results = useBusSearch(originId, destinationId, now);
   const hasSelection = originId !== null && destinationId !== null && originId !== destinationId;
   const isGroupOrigin = originId?.startsWith('group:') ?? false;
@@ -29,8 +53,8 @@ function App() {
           items={items}
           originId={originId}
           destinationId={destinationId}
-          onOriginChange={setOriginId}
-          onDestinationChange={setDestinationId}
+          onOriginChange={handleOriginChange}
+          onDestinationChange={handleDestinationChange}
         />
         <ResultsPanel
           results={results}
