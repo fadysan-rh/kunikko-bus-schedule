@@ -111,6 +111,70 @@ export function getStopsForSelector(data: TimetableData): { id: string; name: st
   return result;
 }
 
+/** Return the set of stop IDs reachable from a given selectable item (stop or group). */
+export function getReachableStopIds(
+  fromId: string,
+  data: TimetableData
+): Set<string> {
+  const originIds = new Set(resolveStopIds(fromId));
+  const reachable = new Set<string>();
+
+  for (const direction of data.directions) {
+    // Find the earliest origin index in this direction
+    let minOriginIndex = Infinity;
+    for (let i = 0; i < direction.stopIds.length; i++) {
+      if (originIds.has(direction.stopIds[i])) {
+        minOriginIndex = Math.min(minOriginIndex, i);
+      }
+    }
+    if (minOriginIndex === Infinity) continue;
+
+    // All stops after the earliest origin index are reachable in this direction
+    for (let i = minOriginIndex + 1; i < direction.stopIds.length; i++) {
+      reachable.add(direction.stopIds[i]);
+    }
+  }
+
+  // Remove any origin IDs from reachable set
+  for (const id of originIds) {
+    reachable.delete(id);
+  }
+
+  return reachable;
+}
+
+/** Return the set of stop IDs from which a given selectable item (stop or group) is reachable. */
+export function getOriginStopIds(
+  toId: string,
+  data: TimetableData
+): Set<string> {
+  const destIds = new Set(resolveStopIds(toId));
+  const origins = new Set<string>();
+
+  for (const direction of data.directions) {
+    // Find the latest destination index in this direction
+    let maxDestIndex = -1;
+    for (let i = 0; i < direction.stopIds.length; i++) {
+      if (destIds.has(direction.stopIds[i])) {
+        maxDestIndex = Math.max(maxDestIndex, i);
+      }
+    }
+    if (maxDestIndex < 0) continue;
+
+    // All stops before the latest destination index can reach it
+    for (let i = 0; i < maxDestIndex; i++) {
+      origins.add(direction.stopIds[i]);
+    }
+  }
+
+  // Remove any destination IDs from origins set
+  for (const id of destIds) {
+    origins.delete(id);
+  }
+
+  return origins;
+}
+
 export function getAllDepartures(
   stopId: string,
   now: number,
